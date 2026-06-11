@@ -6,6 +6,23 @@ Servicio local para Windows que actúa como puente entre la app web y una impres
 
 ## Build
 
+### Publicar una nueva versión (recomendado)
+
+El workflow de GitHub Actions compila y publica el `.exe` automáticamente al crear un tag:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Eso dispara [`.github/workflows/release.yml`](.github/workflows/release.yml), que cross-compila el `.exe` y lo adjunta al GitHub Release. El binario queda disponible en:
+
+```text
+https://github.com/<org>/<repo>/releases/latest/download/printbridge.exe
+```
+
+### Build local
+
 Requiere Go 1.21+.
 
 ```bash
