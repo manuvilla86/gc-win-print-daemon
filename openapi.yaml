@@ -1,0 +1,250 @@
+openapi: 3.0.3
+
+info:
+  title: PrintBridge
+  description: >
+    Local Windows service that bridges the web app and a thermal printer.
+    Receives raw ESC/POS bytes over HTTP and forwards them to the printer
+    via the standard Windows spooler driver.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:9100
+    description: Local bridge (runs on the user's Windows PC)
+
+paths:
+  /health:
+    get:
+      summary: Bridge and printer status
+      description: >
+        Returns whether the bridge is running and whether a printer is ready.
+        Use this to determine what UI state to show the user.
+      responses:
+        "200":
+          description: Bridge is running (printer may or may not be available)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              examples:
+                ready:
+                  summary: Printer configured and available
+                  value:
+                    status: ok
+                    printer: "EPSON TM-T20III"
+                    ready: true
+                    configured: true
+                autoDetected:
+                  summary: Printer auto-detected, not explicitly configured
+                  value:
+                    status: ok
+                    printer: "EPSON TM-T20III"
+                    ready: true
+                    configured: false
+                notAvailable:
+                  summary: Configured printer not currently available
+                  value:
+                    status: ok
+                    printer: "EPSON TM-T20III"
+                    ready: false
+                    configured: true
+                noPrinter:
+                  summary: No printer found
+                  value:
+                    status: ok
+                    printer: null
+                    ready: false
+                    configured: false
+
+  /printers:
+    get:
+      summary: List installed printers
+      description: Returns all printers currently installed on the Windows system.
+      responses:
+        "200":
+          description: List of printer names
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PrintersResponse"
+              example:
+                printers:
+                  - "EPSON TM-T20III"
+                  - "Microsoft Print to PDF"
+
+  /config:
+    get:
+      summary: Get current configuration
+      description: Returns the saved printer selection. `printer` is empty string if not yet configured.
+      responses:
+        "200":
+          description: Current config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Config"
+              examples:
+                configured:
+                  value:
+                    printer: "EPSON TM-T20III"
+                unconfigured:
+                  value:
+                    printer: ""
+
+    put:
+      summary: Save printer selection
+      description: >
+        Persists the chosen printer to `config.json` next to the executable.
+        Subsequent calls to `POST /print` will use this printer.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Config"
+            example:
+              printer: "EPSON TM-T20III"
+      responses:
+        "200":
+          description: Config saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "400":
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                ok: false
+                error: INVALID_BODY
+        "500":
+          description: Failed to write config file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                ok: false
+                error: SAVE_FAILED
+
+  /print:
+    post:
+      summary: Send ESC/POS bytes to the printer
+      description: >
+        Forwards raw ESC/POS bytes to the active printer.
+        Uses the printer saved via `PUT /config`; falls back to the first
+        detected printer if none is configured.
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+              description: Raw ESC/POS bytes
+      responses:
+        "200":
+          description: Print job accepted by Windows spooler
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "400":
+          description: Empty or unreadable body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                ok: false
+                error: INVALID_BODY
+        "503":
+          description: No printer available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                ok: false
+                error: PRINTER_NOT_FOUND
+        "500":
+          description: Windows spooler rejected the job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                ok: false
+                error: PRINT_FAILED
+                detail: "WritePrinter: The operation completed successfully."
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, printer, ready, configured]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        printer:
+          type: string
+          nullable: true
+          description: Active printer name, or null if none is available.
+          example: "EPSON TM-T20III"
+        ready:
+          type: boolean
+          description: True if the active printer is installed and available in Windows.
+        configured:
+          type: boolean
+          description: >
+            True if the user explicitly selected a printer via PUT /config.
+            False if the bridge is using the first auto-detected printer.
+
+    PrintersResponse:
+      type: object
+      required: [printers]
+      properties:
+        printers:
+          type: array
+          items:
+            type: string
+          example: ["EPSON TM-T20III", "Microsoft Print to PDF"]
+
+    Config:
+      type: object
+      required: [printer]
+      properties:
+        printer:
+          type: string
+          description: Printer name as returned by GET /printers. Empty string means not configured.
+          example: "EPSON TM-T20III"
+
+    OkResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+
+    ErrorResponse:
+      type: object
+      required: [ok, error]
+      properties:
+        ok:
+          type: boolean
+          enum: [false]
+        error:
+          type: string
+          enum:
+            - PRINTER_NOT_FOUND
+            - PRINT_FAILED
+            - INVALID_BODY
+            - SAVE_FAILED
+        detail:
+          type: string
+          description: Additional error detail from the Windows API, present only for PRINT_FAILED.
