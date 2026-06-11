@@ -18,7 +18,7 @@ git push origin v1.0.0
 Eso dispara [`.github/workflows/release.yml`](.github/workflows/release.yml), que cross-compila el `.exe` y lo adjunta al GitHub Release. El binario queda disponible en:
 
 ```text
-https://github.com/<org>/<repo>/releases/latest/download/printbridge.exe
+https://github.com/manuvilla86/gc-win-print-daemon/releases/latest/download/printbridge.exe
 ```
 
 ### Build local
@@ -62,7 +62,7 @@ Estado del bridge y de la impresora activa.
 ```
 
 | Campo | Descripción |
-|---|---|
+| --- | --- |
 | `printer` | Nombre de la impresora activa. `null` si no hay ninguna disponible. |
 | `ready` | `true` si la impresora está instalada y disponible en Windows. |
 | `configured` | `true` si el usuario eligió explícitamente una impresora vía `PUT /config`. `false` si se está usando la primera detectada automáticamente. |
@@ -98,11 +98,13 @@ Devuelve la configuración guardada.
 Guarda la impresora seleccionada. La config persiste en `config.json` junto al ejecutable.
 
 **Request:**
+
 ```json
 { "printer": "EPSON TM-T20III" }
 ```
 
 **Response 200:**
+
 ```json
 { "ok": true }
 ```
@@ -114,20 +116,24 @@ Guarda la impresora seleccionada. La config persiste en `config.json` junto al e
 Envía bytes ESC/POS crudos a la impresora activa. Usa la impresora configurada vía `PUT /config`; si no hay ninguna configurada, usa la primera detectada automáticamente.
 
 **Request:**
+
 - `Content-Type: application/octet-stream`
 - Body: bytes ESC/POS (`Uint8Array` desde el browser)
 
 **Response 200:**
+
 ```json
 { "ok": true }
 ```
 
 **Response 503** — impresora no encontrada:
+
 ```json
 { "ok": false, "error": "PRINTER_NOT_FOUND" }
 ```
 
 **Response 500** — error al imprimir:
+
 ```json
 { "ok": false, "error": "PRINT_FAILED", "detail": "..." }
 ```
@@ -147,7 +153,7 @@ const { ready, configured } = await res.json()
 ```
 
 | Estado | UI sugerida |
-|---|---|
+| --- | --- |
 | Bridge no responde | "App de impresión no instalada" + link de descarga |
 | `ready: false`, `configured: false` | "No se detectó ninguna impresora" |
 | `ready: false`, `configured: true` | "Impresora configurada no disponible — ¿está conectada?" |
