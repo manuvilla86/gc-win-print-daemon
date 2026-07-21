@@ -18,7 +18,7 @@ git push origin v1.0.0
 Eso dispara [`.github/workflows/release.yml`](.github/workflows/release.yml), que cross-compila el `.exe` y lo adjunta al GitHub Release. El binario queda disponible en:
 
 ```text
-https://github.com/manuvilla86/gc-win-print-daemon/releases/latest/download/printbridge.zip
+https://github.com/manuvilla86/gc-win-print-daemon/releases/latest/download/PrintBridge-Setup.exe
 ```
 
 ### Build local
@@ -32,13 +32,17 @@ make build        # genera printbridge.exe (Windows amd64, sin ventana)
 
 ## Instalación
 
-El usuario descarga `printbridge.exe` y lo ejecuta. El programa:
+1. Descargar `PrintBridge-Setup.exe` y ejecutarlo
+2. Seguir el asistente de instalación (Welcome → Install → Finish)
+3. Opcionalmente marcar "Iniciar PrintBridge ahora" en la pantalla final
 
-1. Se copia a `%LOCALAPPDATA%\Programs\PrintBridge\printbridge.exe`
-2. Se registra en `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` para arrancar con Windows
-3. Lanza la copia instalada y termina el proceso original
+El instalador:
 
-A partir de ahí corre en segundo plano sin ventana y arranca automáticamente con cada login. No requiere permisos de administrador.
+- Copia el ejecutable a `%LOCALAPPDATA%\Programs\PrintBridge\`
+- Registra el startup en `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
+- Registra la entrada en "Agregar o quitar programas"
+
+No requiere permisos de administrador. Para desinstalar, usar "Agregar o quitar programas" o el botón de desinstalación en la app web.
 
 ## API
 

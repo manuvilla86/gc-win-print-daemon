@@ -18,16 +18,20 @@ jobs:
         with:
           go-version: "1.21"
 
+      - name: Install NSIS
+        run: sudo apt-get install -y nsis
+
       - name: Download dependencies
         run: go mod tidy
 
-      - name: Build
-        run: |
-          GOOS=windows GOARCH=amd64 go build -ldflags="-H windowsgui -s -w" -o printbridge.exe .
-          zip printbridge.zip printbridge.exe
+      - name: Build exe
+        run: GOOS=windows GOARCH=amd64 go build -ldflags="-H windowsgui -s -w" -o printbridge.exe .
+
+      - name: Build installer
+        run: makensis /DAPP_VERSION=${GITHUB_REF_NAME#v} installer.nsi
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          files: printbridge.zip
+          files: PrintBridge-Setup.exe
           generate_release_notes: true
