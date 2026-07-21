@@ -22,10 +22,12 @@ jobs:
         run: go mod tidy
 
       - name: Build
-        run: GOOS=windows GOARCH=amd64 go build -ldflags="-H windowsgui -s -w" -o printbridge.exe .
+        run: |
+          GOOS=windows GOARCH=amd64 go build -ldflags="-H windowsgui -s -w" -o printbridge.exe .
+          zip printbridge.zip printbridge.exe
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          files: printbridge.exe
+          files: printbridge.zip
           generate_release_notes: true

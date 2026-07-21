@@ -18,7 +18,7 @@ git push origin v1.0.0
 Eso dispara [`.github/workflows/release.yml`](.github/workflows/release.yml), que cross-compila el `.exe` y lo adjunta al GitHub Release. El binario queda disponible en:
 
 ```text
-https://github.com/manuvilla86/gc-win-print-daemon/releases/latest/download/printbridge.exe
+https://github.com/manuvilla86/gc-win-print-daemon/releases/latest/download/printbridge.zip
 ```
 
 ### Build local
