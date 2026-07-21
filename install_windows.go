@@ -1,11 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"golang.org/x/sys/windows/registry"
 )
@@ -55,6 +58,36 @@ func maybeInstall() {
 	if cmd.Start() == nil {
 		os.Exit(0)
 	}
+}
+
+// DELETE /uninstall
+// Removes the startup registry entry and schedules deletion of the install dir, then exits.
+func uninstallHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodDelete {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Remove startup registry entry.
+	if k, err := registry.OpenKey(registry.CURRENT_USER, regKey, registry.SET_VALUE); err == nil {
+		k.DeleteValue(regValue)
+		k.Close()
+	}
+
+	// Respond before exiting so the browser receives the response.
+	json.NewEncoder(w).Encode(map[string]interface{}{"ok": true})
+
+	// Schedule self-deletion via a detached cmd and exit.
+	dir := installDir()
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		cmd := exec.Command("cmd", "/C", "ping -n 3 127.0.0.1 > nul && rmdir /S /Q \""+dir+"\"")
+		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x00000008}
+		cmd.Start()
+		os.Exit(0)
+	}()
 }
 
 func copyFile(src, dst string) error {

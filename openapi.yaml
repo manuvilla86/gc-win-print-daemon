@@ -181,6 +181,21 @@ paths:
                 error: PRINT_FAILED
                 detail: "WritePrinter: The operation completed successfully."
 
+  /uninstall:
+    delete:
+      summary: Uninstall the bridge
+      description: >
+        Removes the Windows startup registry entry, deletes the install directory,
+        and stops the service. The process exits ~500ms after responding so the
+        browser receives the response before the connection closes.
+      responses:
+        "200":
+          description: Uninstall initiated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+
 components:
   schemas:
     HealthResponse:

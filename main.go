@@ -19,6 +19,7 @@ func main() {
 	mux.HandleFunc("/printers", printersHandler)
 	mux.HandleFunc("/config", configHandler)
 	mux.HandleFunc("/print", printHandler)
+	mux.HandleFunc("/uninstall", uninstallHandler)
 
 	log.Fatal(http.ListenAndServe(addr, cors(mux)))
 }
