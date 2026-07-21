@@ -28,7 +28,7 @@ jobs:
         run: GOOS=windows GOARCH=amd64 go build -ldflags="-H windowsgui -s -w" -o printbridge.exe .
 
       - name: Build installer
-        run: makensis /DAPP_VERSION=${GITHUB_REF_NAME#v} installer.nsi
+        run: makensis -DAPP_VERSION=${GITHUB_REF_NAME#v} installer.nsi
 
       - name: Create release
         uses: softprops/action-gh-release@v2
