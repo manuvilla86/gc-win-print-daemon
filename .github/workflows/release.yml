@@ -27,16 +27,6 @@ jobs:
       - name: Build exe
         run: GOOS=windows GOARCH=amd64 go build -ldflags="-H windowsgui -s -w" -o printbridge.exe .
 
-      - name: Sign exe
-        uses: SSLcom/esigner-codesign@v1
-        with:
-          command: sign
-          username: ${{ secrets.SSLCOM_USERNAME }}
-          password: ${{ secrets.SSLCOM_PASSWORD }}
-          credential_id: ${{ secrets.SSLCOM_CREDENTIAL_ID }}
-          totp_secret: ${{ secrets.SSLCOM_TOTP_SECRET }}
-          file_path: printbridge.exe
-
       - name: Build installer
         run: makensis -DAPP_VERSION=${GITHUB_REF_NAME#v} installer.nsi
 
