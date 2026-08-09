@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"io"
-	"log"
 	"net/http"
 
 	"printbridge/printer"
@@ -13,15 +12,18 @@ const addr = "127.0.0.1:9100"
 
 func main() {
 	maybeInstall()
+	go startServer()
+	runTray() // blocks in main goroutine — required by systray
+}
 
+func startServer() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", healthHandler)
 	mux.HandleFunc("/printers", printersHandler)
 	mux.HandleFunc("/config", configHandler)
 	mux.HandleFunc("/print", printHandler)
 	mux.HandleFunc("/uninstall", uninstallHandler)
-
-	log.Fatal(http.ListenAndServe(addr, cors(mux)))
+	http.ListenAndServe(addr, cors(mux))
 }
 
 func cors(next http.Handler) http.Handler {
