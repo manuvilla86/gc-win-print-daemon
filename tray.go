@@ -55,15 +55,13 @@ func updateTrayStatus(mStatus *systray.MenuItem) {
 	}
 }
 
-func circleIcon(r, g, b uint8) []byte {
-	img := image.NewRGBA(image.Rect(0, 0, 16, 16))
-	for x := 0; x < 16; x++ {
-		for y := 0; y < 16; y++ {
-			dx := float64(x) - 7.5
-			dy := float64(y) - 7.5
-			if dx*dx+dy*dy <= 36 {
-				img.Set(x, y, color.RGBA{r, g, b, 255})
-			}
+func solidIcon(r, g, b uint8) []byte {
+	const size = 32
+	img := image.NewRGBA(image.Rect(0, 0, size, size))
+	c := color.RGBA{r, g, b, 255}
+	for x := 0; x < size; x++ {
+		for y := 0; y < size; y++ {
+			img.Set(x, y, c)
 		}
 	}
 	var buf bytes.Buffer
@@ -71,6 +69,6 @@ func circleIcon(r, g, b uint8) []byte {
 	return buf.Bytes()
 }
 
-func iconGreen()  []byte { return circleIcon(34, 197, 94) }
-func iconYellow() []byte { return circleIcon(234, 179, 8) }
-func iconGray()   []byte { return circleIcon(156, 163, 175) }
+func iconGreen()  []byte { return solidIcon(34, 197, 94) }
+func iconYellow() []byte { return solidIcon(234, 179, 8) }
+func iconGray()   []byte { return solidIcon(156, 163, 175) }

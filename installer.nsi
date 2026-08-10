@@ -33,6 +33,9 @@ Section "PrintBridge" SEC_MAIN
     SetOutPath "$INSTDIR"
     File "printbridge.exe"
 
+    ; Desktop shortcut
+    CreateShortCut "$DESKTOP\PrintBridge.lnk" "$INSTDIR\${EXE_NAME}"
+
     ; Startup entry
     WriteRegStr HKCU "${REG_RUN}" "PrintBridge" '"$INSTDIR\${EXE_NAME}"'
 
@@ -51,6 +54,7 @@ Section "Uninstall"
     ; Stop the service if running
     ExecWait 'taskkill /F /IM "${EXE_NAME}"'
 
+    Delete "$DESKTOP\PrintBridge.lnk"
     DeleteRegValue HKCU "${REG_RUN}"   "PrintBridge"
     DeleteRegKey   HKCU "${REG_UNINST}"
 
