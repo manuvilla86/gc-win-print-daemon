@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/fyne-io/systray"
+	"fyne.io/systray"
 	"printbridge/printer"
 )
 
