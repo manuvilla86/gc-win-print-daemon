@@ -17,31 +17,25 @@ var (
 	modUser32   = windows.NewLazySystemDLL("user32.dll")
 	modShell32  = windows.NewLazySystemDLL("shell32.dll")
 	modKernel32 = windows.NewLazySystemDLL("kernel32.dll")
-	modGdi32    = windows.NewLazySystemDLL("gdi32.dll")
 
-	procRegisterClassExW   = modUser32.NewProc("RegisterClassExW")
-	procCreateWindowExW    = modUser32.NewProc("CreateWindowExW")
-	procDefWindowProcW     = modUser32.NewProc("DefWindowProcW")
-	procGetMessageW        = modUser32.NewProc("GetMessageW")
-	procTranslateMessage   = modUser32.NewProc("TranslateMessage")
-	procDispatchMessageW   = modUser32.NewProc("DispatchMessageW")
-	procPostQuitMessage    = modUser32.NewProc("PostQuitMessage")
-	procCreatePopupMenu    = modUser32.NewProc("CreatePopupMenu")
-	procAppendMenuW        = modUser32.NewProc("AppendMenuW")
-	procTrackPopupMenu     = modUser32.NewProc("TrackPopupMenu")
-	procDestroyMenu        = modUser32.NewProc("DestroyMenu")
-	procGetCursorPos       = modUser32.NewProc("GetCursorPos")
-	procSetForeground      = modUser32.NewProc("SetForegroundWindow")
-	procPostMessageW       = modUser32.NewProc("PostMessageW")
-	procCreateIconIndirect = modUser32.NewProc("CreateIconIndirect")
+	procRegisterClassExW = modUser32.NewProc("RegisterClassExW")
+	procCreateWindowExW  = modUser32.NewProc("CreateWindowExW")
+	procDefWindowProcW   = modUser32.NewProc("DefWindowProcW")
+	procGetMessageW      = modUser32.NewProc("GetMessageW")
+	procTranslateMessage = modUser32.NewProc("TranslateMessage")
+	procDispatchMessageW = modUser32.NewProc("DispatchMessageW")
+	procPostQuitMessage  = modUser32.NewProc("PostQuitMessage")
+	procLoadIconW        = modUser32.NewProc("LoadIconW")
+	procCreatePopupMenu  = modUser32.NewProc("CreatePopupMenu")
+	procAppendMenuW      = modUser32.NewProc("AppendMenuW")
+	procTrackPopupMenu   = modUser32.NewProc("TrackPopupMenu")
+	procDestroyMenu      = modUser32.NewProc("DestroyMenu")
+	procGetCursorPos     = modUser32.NewProc("GetCursorPos")
+	procSetForeground    = modUser32.NewProc("SetForegroundWindow")
+	procPostMessageW     = modUser32.NewProc("PostMessageW")
 
 	procShellNotifyIconW = modShell32.NewProc("Shell_NotifyIconW")
 	procGetModuleHandleW = modKernel32.NewProc("GetModuleHandleW")
-
-	procCreateCompatibleDC = modGdi32.NewProc("CreateCompatibleDC")
-	procDeleteDC           = modGdi32.NewProc("DeleteDC")
-	procCreateDIBSection   = modGdi32.NewProc("CreateDIBSection")
-	procCreateBitmap       = modGdi32.NewProc("CreateBitmap")
 )
 
 const (
@@ -59,6 +53,10 @@ const (
 
 	cmdQuit = uintptr(1)
 	mfStr   = uintptr(0)
+
+	// Resource IDs matching resources.rc
+	rIDGreen = uintptr(1)
+	rIDGray  = uintptr(2)
 )
 
 type NOTIFYICONDATA struct {
@@ -97,101 +95,11 @@ type MSG struct {
 
 type POINT struct{ X, Y int32 }
 
-type bitmapInfoHeader struct {
-	BiSize          uint32
-	BiWidth         int32
-	BiHeight        int32
-	BiPlanes        uint16
-	BiBitCount      uint16
-	BiCompression   uint32
-	BiSizeImage     uint32
-	BiXPelsPerMeter int32
-	BiYPelsPerMeter int32
-	BiClrUsed       uint32
-	BiClrImportant  uint32
-}
-
-type bitmapInfo struct {
-	BmiHeader bitmapInfoHeader
-	BmiColors [1]uint32
-}
-
-type iconInfo struct {
-	FIcon    uint32
-	XHotspot uint32
-	YHotspot uint32
-	HbmMask  uintptr
-	HbmColor uintptr
-}
-
 var (
 	mainHwnd  uintptr
 	iconGreen uintptr
 	iconGray  uintptr
-	// kept alive for the process lifetime so the icon bitmaps remain valid
-	iconBitmaps []uintptr
 )
-
-// makeColorIcon creates a solid 16×16 HICON from RGB values using GDI.
-// The bitmaps backing the icon are stored in iconBitmaps (never freed).
-func makeColorIcon(r, g, b byte) uintptr {
-	const sz = 16
-
-	hdc, _, _ := procCreateCompatibleDC.Call(0)
-	if hdc == 0 {
-		return 0
-	}
-
-	bi := bitmapInfo{
-		BmiHeader: bitmapInfoHeader{
-			BiSize:     uint32(unsafe.Sizeof(bitmapInfoHeader{})),
-			BiWidth:    sz,
-			BiHeight:   -sz, // top-down
-			BiPlanes:   1,
-			BiBitCount: 32,
-		},
-	}
-
-	var ppvBits uintptr
-	hBmpColor, _, _ := procCreateDIBSection.Call(
-		hdc,
-		uintptr(unsafe.Pointer(&bi)),
-		0, // DIB_RGB_COLORS
-		uintptr(unsafe.Pointer(&ppvBits)),
-		0, 0,
-	)
-	procDeleteDC.Call(hdc)
-
-	if hBmpColor == 0 || ppvBits == 0 {
-		return 0
-	}
-
-	// Fill pixels: BGRA, fully opaque
-	pix := (*[sz * sz * 4]byte)(unsafe.Pointer(ppvBits))
-	for i := 0; i < sz*sz; i++ {
-		pix[i*4+0] = b
-		pix[i*4+1] = g
-		pix[i*4+2] = r
-		pix[i*4+3] = 255
-	}
-
-	// 1bpp AND mask — all zeros = draw from color bitmap
-	maskStride := (sz + 15) / 16 * 2 // word-aligned row bytes
-	mask := make([]byte, maskStride*sz)
-	hBmpMask, _, _ := procCreateBitmap.Call(sz, sz, 1, 1, uintptr(unsafe.Pointer(&mask[0])))
-	runtime.KeepAlive(mask)
-
-	if hBmpMask == 0 {
-		return 0
-	}
-
-	ii := iconInfo{FIcon: 1, HbmMask: hBmpMask, HbmColor: hBmpColor}
-	hIcon, _, _ := procCreateIconIndirect.Call(uintptr(unsafe.Pointer(&ii)))
-
-	// Keep bitmap handles alive for the process lifetime
-	iconBitmaps = append(iconBitmaps, hBmpColor, hBmpMask)
-	return hIcon
-}
 
 func trayWndProc(hwnd, msg, wParam, lParam uintptr) uintptr {
 	switch msg {
@@ -267,8 +175,9 @@ func runTray() {
 
 	hInst, _, _ := procGetModuleHandleW.Call(0)
 
-	iconGreen = makeColorIcon(34, 197, 94)
-	iconGray = makeColorIcon(156, 163, 175)
+	// Icons loaded from embedded resources compiled by windres
+	iconGreen, _, _ = procLoadIconW.Call(hInst, rIDGreen)
+	iconGray, _, _ = procLoadIconW.Call(hInst, rIDGray)
 
 	clsName, _ := syscall.UTF16PtrFromString("PBTrayWnd")
 	wc := WNDCLASSEXW{
@@ -289,14 +198,13 @@ func runTray() {
 	)
 	mainHwnd = hwnd
 
-	startIcon := iconGreen
 	nid := NOTIFYICONDATA{
 		CbSize:           uint32(unsafe.Sizeof(NOTIFYICONDATA{})),
 		HWnd:             hwnd,
 		UID:              1,
 		UFlags:           nifMessage | nifIcon | nifTip,
 		UCallbackMessage: uint32(wmTray),
-		HIcon:            startIcon,
+		HIcon:            iconGreen,
 	}
 	tip, _ := syscall.UTF16FromString("PrintBridge — Iniciando...")
 	copy(nid.SzTip[:], tip)
