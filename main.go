@@ -13,7 +13,7 @@ const addr = "127.0.0.1:9100"
 func main() {
 	maybeInstall()
 	go startServer()
-	runTray() // blocks in main goroutine — required by systray
+	runTray() // blocks in main goroutine
 }
 
 func startServer() {
