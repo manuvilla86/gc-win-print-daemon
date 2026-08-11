@@ -33,8 +33,8 @@ Section "PrintBridge" SEC_MAIN
     SetOutPath "$INSTDIR"
     File "printbridge.exe"
 
-    ; Desktop shortcut
-    CreateShortCut "$DESKTOP\PrintBridge.lnk" "$INSTDIR\${EXE_NAME}"
+    ; Desktop shortcut (icon = green printer icon embedded in exe, resource index 0)
+    CreateShortCut "$DESKTOP\PrintBridge.lnk" "$INSTDIR\${EXE_NAME}" "" "$INSTDIR\${EXE_NAME}" 0
 
     ; Startup entry
     WriteRegStr HKCU "${REG_RUN}" "PrintBridge" '"$INSTDIR\${EXE_NAME}"'
