@@ -25,7 +25,7 @@ var (
 	procTranslateMessage = modUser32.NewProc("TranslateMessage")
 	procDispatchMessageW = modUser32.NewProc("DispatchMessageW")
 	procPostQuitMessage  = modUser32.NewProc("PostQuitMessage")
-	procLoadIconW        = modUser32.NewProc("LoadIconW")
+	procLoadImageW       = modUser32.NewProc("LoadImageW")
 	procCreatePopupMenu  = modUser32.NewProc("CreatePopupMenu")
 	procAppendMenuW      = modUser32.NewProc("AppendMenuW")
 	procTrackPopupMenu   = modUser32.NewProc("TrackPopupMenu")
@@ -175,9 +175,9 @@ func runTray() {
 
 	hInst, _, _ := procGetModuleHandleW.Call(0)
 
-	// Icons loaded from embedded resources compiled by windres
-	iconGreen, _, _ = procLoadIconW.Call(hInst, rIDGreen)
-	iconGray, _, _ = procLoadIconW.Call(hInst, rIDGray)
+	// LoadImageW with IMAGE_ICON=1, LR_DEFAULTCOLOR=0 — preserves 32bpp alpha
+	iconGreen, _, _ = procLoadImageW.Call(hInst, rIDGreen, 1, 0, 0, 0)
+	iconGray, _, _ = procLoadImageW.Call(hInst, rIDGray, 1, 0, 0, 0)
 
 	clsName, _ := syscall.UTF16PtrFromString("PBTrayWnd")
 	wc := WNDCLASSEXW{
